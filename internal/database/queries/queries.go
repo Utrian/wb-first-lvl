@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -11,18 +12,25 @@ import (
 	"github.com/nats-io/stan.go"
 
 	"wb-first-lvl/internal/models"
+	"wb-first-lvl/internal/services/parse"
 	"wb-first-lvl/tools"
 )
 
-func GetAllOrders() {
+func InitConn() *sql.DB {
 	tools.Load_env()
 	driverName := os.Getenv("DRIVER_NAME")
 	dataSourceName := os.Getenv("DATA_SOURCE_NAME")
 
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		panic(err)
 	}
+	return db
+}
+
+func GetAllOrders() {
+	db := InitConn()
 	defer db.Close()
 
 	rows, err := db.Query("SELECT * FROM orders")
@@ -50,36 +58,46 @@ func GetAllOrders() {
 		log.Fatal(err)
 	}
 
-	for _, ord := range ords {
-		fmt.Println(ord) // Возможно потребуется форматировать вывод!
+	for i, ord := range ords {
+		fmt.Println(i, ord) // Возможно потребуется форматировать вывод!
 	}
 }
 
-func CreateOrder(orderMsg *stan.Msg) {
-	// Парсим json файл в структуру
-	var order models.Order
-	if err := json.Unmarshal(orderMsg.Data, &order); err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(order)
-
-	// Подключаемся к БД и выполняем запрос на вставку
-	// На данный момент нужно разобраться с стркутурой []item
-	tools.Load_env()
-	driverName := os.Getenv("DRIVER_NAME")
-	dataSourceName := os.Getenv("DATA_SOURCE_NAME")
-
-	db, err := sql.Open(driverName, dataSourceName)
+func OrderExists(db *sql.DB, uid string) bool {
+	fmt.Println("Зашли в функцию проверки")
+	fmt.Println("Начинаем проверку")
+	order, err := db.Exec("SELECT * FROM orders WHERE order_uid=$1", uid)
+	fmt.Println("Проверка завершина")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
+	isExist, _ := order.RowsAffected()
+	fmt.Println(isExist == 0)
+	return isExist == 1
+}
+
+func CreateOrder(orderMsg *stan.Msg) {
+	db := InitConn()
 	defer db.Close()
 
+	fmt.Println("Началась запись в БД1")
+	order := parse.ParseJsonToOrder(orderMsg)
+	fmt.Println(order)
+
+	// fmt.Println("Проверяем наличие заказа")
+	// if orderExists := OrderExists(db, order.OrderUID); orderExists {
+	// 	fmt.Println("This order already exists.")
+	// 	return
+	// }
+
+	fmt.Println("Преобразуем структуры в json")
+	// Преобразуем структуры в json, чтобы сохранить их в виде jsonb в БД.
 	jsonDelivery, _ := json.Marshal(order.Delivery)
 	jsonPayment, _ := json.Marshal(order.Payment)
 	jsonItems, _ := json.Marshal(order.Items)
 
-	_, err = db.Exec(
+	fmt.Println("Началась запись в БД")
+	_, err := db.Exec(
 		`
 		INSERT INTO orders (
 			order_uid, track_number, "entry",
@@ -99,6 +117,45 @@ func CreateOrder(orderMsg *stan.Msg) {
 		order.DateCreated, order.OofShard,
 	)
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
+	fmt.Println("The order has been successfully created.")
+}
+
+func CreateOrdersTable() {
+	db := InitConn()
+	defer db.Close()
+
+	query, err := ioutil.ReadFile("internal/database/postgres.sql")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.Exec(string(query))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func TruncateOrders() {
+	db := InitConn()
+	defer db.Close()
+
+	_, err := db.Exec("TRUNCATE orders")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("The orders have been cleared.")
+}
+
+func DropTable() {
+	db := InitConn()
+	defer db.Close()
+
+	_, err := db.Exec("DROP TABLE orders")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("The orders have been deleted.")
 }
