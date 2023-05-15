@@ -49,5 +49,6 @@ func cmdPublishJson(sc stan.Conn) {
 }
 
 func main() {
-	cmdPublishJson(InitConnection())
+	ic := InitConnection()
+	cmdPublishJson(ic)
 }

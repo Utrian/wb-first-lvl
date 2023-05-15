@@ -1,6 +1,11 @@
 package models
 
-import "time"
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"time"
+)
 
 type Order struct {
 	OrderUID          string    `json:"order_uid"`
@@ -17,4 +22,17 @@ type Order struct {
 	SmId              int       `json:"sm_id"`
 	DateCreated       time.Time `json:"date_created"`
 	OofShard          string    `json:"oof_shard"`
+}
+
+func (o Order) Value() (driver.Value, error) {
+	return json.Marshal(o)
+}
+
+func (o *Order) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+
+	return json.Unmarshal(b, &o)
 }
