@@ -37,7 +37,10 @@ func (sb *Subscriber) SubAndPub() *stan.Subscription {
 	}
 	fmt.Println("Вышли из стриминга")
 
-	return &sub
+	defer sub.Unsubscribe()
+
+	select {} // позволяет функции дальше слушать канал и сразу обрабатывать по поступлению json;
+	// надо найти как правильно завершать процесс в таком случае;
 }
 
 // func (sb *Subscriber) CreateOrder(m *stan.Msg) {

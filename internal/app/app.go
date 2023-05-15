@@ -4,11 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"time"
 	"wb-first-lvl/tools"
 
 	"wb-first-lvl/internal/database/queries"
-	"wb-first-lvl/internal/services/nats-streaming/subscribe"
 	// rec "wb-first-lvl/internal/services/nats-streaming/receive"
 )
 
@@ -30,11 +28,14 @@ func Run() {
 	db := InitConn()
 	defer db.Close()
 	repo := queries.NewOrderRepo(db)
-	repo.TruncateTables()
+	// repo.TruncateTables()
+
+	ord, _ := repo.GetExistingOrder("b563feb7b2b84b6test")
+	fmt.Println("Order: ", ord)
 
 	// Подключаемся к стриммингу и делаем запись в БД
-	sub := subscribe.New(*repo)
-	sub1 := *sub.SubAndPub()
-	defer sub1.Unsubscribe()
-	time.Sleep(200 * time.Millisecond)
+	// sub := subscribe.New(*repo)
+	// sub.SubAndPub()
+	// defer sub1.Unsubscribe()
+	// time.Sleep(200 * time.Millisecond)
 }

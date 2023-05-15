@@ -1,7 +1,6 @@
 package models
 
 import (
-	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"time"
@@ -24,9 +23,9 @@ type Order struct {
 	OofShard          string    `json:"oof_shard"`
 }
 
-func (o Order) Value() (driver.Value, error) {
-	return json.Marshal(o)
-}
+// func (o Order) Value() (driver.Value, error) {
+// 	return json.Marshal(o)
+// }
 
 func (o *Order) Scan(value interface{}) error {
 	b, ok := value.([]byte)
