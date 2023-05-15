@@ -18,12 +18,12 @@ func New(repo queries.OrderRepo) *Subscriber {
 	return &Subscriber{
 		ClusterID: "test-cluster",
 		ClientID:  "order-subscriber",
-		Channel:   "order-nitofication",
+		Channel:   "order-notification",
 		repo:      repo,
 	}
 }
 
-func (sb *Subscriber) SubAndPub() {
+func (sb *Subscriber) SubAndPub() *stan.Subscription {
 	sc, err := stan.Connect(sb.ClusterID, sb.ClientID)
 	if err != nil {
 		fmt.Println(err)
@@ -37,7 +37,7 @@ func (sb *Subscriber) SubAndPub() {
 	}
 	fmt.Println("Вышли из стриминга")
 
-	defer sub.Unsubscribe()
+	return &sub
 }
 
 // func (sb *Subscriber) CreateOrder(m *stan.Msg) {

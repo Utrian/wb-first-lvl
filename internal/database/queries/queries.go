@@ -22,6 +22,15 @@ func NewOrderRepo(db *sql.DB) *OrderRepo {
 	}
 }
 
+func (repo *OrderRepo) TruncateTables() {
+	_, err := repo.db.Exec("TRUNCATE items, orders")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("The orders have been cleared.")
+}
+
 func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) {
 	rows, err := repo.db.Query("SELECT * FROM orders WHERE order_uid = $1", order_uid)
 	if err != nil {
@@ -51,38 +60,57 @@ func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) 
 }
 
 func (repo *OrderRepo) CreateOrder(msg *stan.Msg) {
+	fmt.Println("Зашли в CreateOrder")
 	order := parse.ParseJsonToOrder(msg)
 	fmt.Println(order)
 
-	fmt.Println("Начинаем запрос")
+	fmt.Println("Определяем переменные с запросами")
 	var (
 		qOrder = `
-			INSERT INTO orders (
-				order_uid, track_number, "entry",
-				delivery, payment, locale,
-				internal_signature, customer_id,
-				delivery_service, shardkey, sm_id,
-				date_created, off_shard
-			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7,
-				$8, $9, $10, $11, $12, $13
-			)
-		`
+	INSERT INTO orders (
+		order_uid, track_number, "entry",
+		delivery, payment, locale,
+		internal_signature, customer_id,
+		delivery_service, shardkey, sm_id,
+		date_created, off_shard
+	) VALUES (
+		$1, $2, $3, $4, $5, $6, $7,
+		$8, $9, $10, $11, $12, $13
+	)
+	`
 		qItems = `
-			INSERT INTO items (
-				order_id, chrt_id, track_number,
-				price, rid, "name", sale, size,
-				total_price, nm_id, brand, "status"
-			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7,
-				$8, $9, $10, $11, $12
-			)
-		`
+	INSERT INTO items (
+		order_id, chrt_id, track_number,
+		price, rid, "name", sale, size,
+		total_price, nm_id, brand, "status"
+	) VALUES (
+		$1, $2, $3, $4, $5, $6, $7,
+		$8, $9, $10, $11, $12
+	)
+	`
 	)
 
+	fmt.Println("Маршализируем delivery и payment")
 	jsonDelivery, _ := json.Marshal(order.Delivery)
 	jsonPayment, _ := json.Marshal(order.Payment)
 
+	fmt.Println("Отправляем запрос в orders")
+	// _, err := repo.db.Exec(
+	// 	`
+	// 	INSERT INTO orders (
+	// 		order_uid, track_number, "entry",
+	// 		delivery, payment, locale,
+	// 		internal_signature, customer_id,
+	// 		delivery_service, shardkey, sm_id,
+	// 		date_created, off_shard
+	// 	) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	// 	`,
+	// 	order.OrderUID, order.TrackNumber, order.Entry,
+	// 	jsonDelivery, jsonPayment, order.Locale,
+	// 	order.InternalSignature, order.CustomerId,
+	// 	order.DeliveryService, order.Shardkey, order.SmId,
+	// 	order.DateCreated, order.OofShard,
+	// )
 	_, err := repo.db.Exec(
 		qOrder,
 		order.OrderUID, order.TrackNumber, order.Entry,
@@ -97,7 +125,20 @@ func (repo *OrderRepo) CreateOrder(msg *stan.Msg) {
 	}
 	fmt.Println("Заказ размещен")
 
+	fmt.Println("Размещаем items")
 	for _, item := range order.Items {
+		// _, err := repo.db.Exec(
+		// 	`
+		// 	INSERT INTO items (
+		// 		order_id, chrt_id, track_number,
+		// 		price, rid, "name", sale, size,
+		// 		total_price, nm_id, brand, "status"
+		// 	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		// 	`,
+		// 	order.OrderUID, item.ChrtId, item.TrackNumber,
+		// 	item.Price, item.Rid, item.Name, item.Sale, item.Size,
+		// 	item.TotalPrice, item.NmId, item.Brand, item.Status,
+		// )
 		_, err := repo.db.Exec(
 			qItems,
 			order.OrderUID, item.ChrtId, item.TrackNumber,
