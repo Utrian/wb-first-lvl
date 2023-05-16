@@ -30,46 +30,13 @@ func (sb *Subscriber) SubAndPub() *stan.Subscription {
 	}
 	defer sc.Close()
 
-	fmt.Println("Подписываемся на стриминг")
 	sub, err := sc.Subscribe(sb.Channel, sb.repo.CreateOrder, stan.StartWithLastReceived())
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("Вышли из стриминга")
 
 	defer sub.Unsubscribe()
 
 	select {} // позволяет функции дальше слушать канал и сразу обрабатывать по поступлению json;
 	// надо найти как правильно завершать процесс в таком случае;
 }
-
-// func (sb *Subscriber) CreateOrder(m *stan.Msg) {
-// 	order := models.Order{}
-
-// 	err := json.Unmarshal(m.Data, &order)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-
-// 	if err := sb.repo.CreateOrder(&order); err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// }
-
-// func (sb *Subscriber) ConnAndCreate() {
-// 	sc, err := stan.Connect(sb.ClusterID, sb.ClientID)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		panic(err)
-// 	}
-// 	defer sc.Close()
-
-// 	sub, err := sc.Subscribe(sb.Channel, sb.CreateOrder, stan.StartWithLastReceived())
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-// 	time.Sleep(5 * time.Second)
-// 	defer sub.Unsubscribe()
-// }
