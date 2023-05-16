@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"wb-first-lvl/tools"
-
+	"wb-first-lvl/internal/cache"
 	"wb-first-lvl/internal/database/queries"
+	"wb-first-lvl/tools"
 	// rec "wb-first-lvl/internal/services/nats-streaming/receive"
 )
 
@@ -28,10 +28,13 @@ func Run() {
 	// Подключаемся к БД и создаем соединение repo
 	db := InitConn()
 	defer db.Close()
-	repo := queries.NewOrderRepo(db)
-	// repo.TruncateTables()
 
-	ords, _ := repo.GetAllOrders()
+	cache := cache.NewCache(5*time.Minute, 10*time.Minute)
+	repo := queries.NewOrderRepo(db, cache)
+	repo.InitCache()
+
+	// Проверка на то что из кеша возвращаются данные
+	ords, _ := repo.GetExistingOrder("b563feb7b2b84b6test")
 	fmt.Println(ords)
 
 	// ord, _ := repo.GetExistingOrder("b563feb7b2b84b6test")

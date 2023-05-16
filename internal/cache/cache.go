@@ -3,13 +3,11 @@ package cache
 import (
 	"sync"
 	"time"
-	"wb-first-lvl/internal/database/queries"
 	"wb-first-lvl/internal/models"
 )
 
 type Cache struct {
 	sync.RWMutex
-	repo              *queries.OrderRepo
 	defaultExpiration time.Duration
 	cleanupInterval   time.Duration
 	ords              map[string]Ord
@@ -21,11 +19,10 @@ type Ord struct {
 	Expiration int64
 }
 
-func NewCache(repo *queries.OrderRepo, defaultExpiration, cleanupInterval time.Duration) *Cache {
+func NewCache(defaultExpiration, cleanupInterval time.Duration) *Cache {
 	ords := make(map[string]Ord)
 
 	cache := Cache{
-		repo:              repo,
 		ords:              ords,
 		defaultExpiration: defaultExpiration,
 		cleanupInterval:   cleanupInterval,
@@ -59,32 +56,27 @@ func (c *Cache) Set(ord_uid string, order models.Order, duration time.Duration) 
 	}
 }
 
-func (c *Cache) Get(ord_uid string) (interface{}, bool) {
+func (c *Cache) Get(ord_uid string) (models.Order, bool) {
 	c.RLock()
 	defer c.RUnlock()
 
 	ord, found := c.ords[ord_uid]
 
 	if !found {
-		return nil, false
+		return models.Order{}, false
 	}
 
 	if ord.Expiration > 0 {
 		if time.Now().UnixNano() > ord.Expiration {
-			return nil, false
+			return models.Order{}, false
 		}
 	}
 
 	return ord.Value, true
 }
 
-func (c *Cache) RestoreCache() error {
-	ords, err := c.repo.GetAllOrders()
-	if err != nil {
-		return err
-	}
-
-	for _, ord := range ords {
+func (c *Cache) RestoreCache(ords *[]models.Order) error {
+	for _, ord := range *ords {
 		c.Set(ord.OrderUID, ord, 0)
 	}
 
