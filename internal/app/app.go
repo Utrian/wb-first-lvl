@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 	"wb-first-lvl/tools"
 
 	"wb-first-lvl/internal/database/queries"
@@ -30,12 +31,14 @@ func Run() {
 	repo := queries.NewOrderRepo(db)
 	// repo.TruncateTables()
 
-	ord, _ := repo.GetExistingOrder("b563feb7b2b84b6test")
-	fmt.Println("Order: ", ord)
+	ords, _ := repo.GetAllOrders()
+	fmt.Println(ords)
+
+	// ord, _ := repo.GetExistingOrder("b563feb7b2b84b6test")
+	// fmt.Println("Order: ", ord)
 
 	// Подключаемся к стриммингу и делаем запись в БД
 	// sub := subscribe.New(*repo)
 	// sub.SubAndPub()
-	// defer sub1.Unsubscribe()
-	// time.Sleep(200 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 }
