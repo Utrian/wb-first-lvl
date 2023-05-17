@@ -7,6 +7,7 @@ import (
 	"time"
 	"wb-first-lvl/internal/cache"
 	"wb-first-lvl/internal/database/queries"
+	"wb-first-lvl/internal/services/nats-streaming/subscribe"
 	"wb-first-lvl/internal/transport/router"
 	"wb-first-lvl/tools"
 	// rec "wb-first-lvl/internal/services/nats-streaming/receive"
@@ -38,19 +39,13 @@ func Run() {
 
 	cache := cache.NewCache(5*time.Minute, 10*time.Minute)
 	repo := queries.NewOrderRepo(db, cache)
+	repo.TruncateTables()
 	repo.InitCache()
+
+	sub := subscribe.New(*repo)
+	go sub.SubAndPub()
 
 	router.Router(repo)
 
-	// sub := subscribe.New(*repo)
-	// sub.SubAndPub()
-
-	// Проверка на то что из кеша возвращаются данные
-	// ord, _ := repo.GetExistingOrder("b563feb7b2b84b6test")
-	// fmt.Printf("detailed struct: %+v/n", ord)
-
-	// Подключаемся к стриммингу и делаем запись в БД
-	// sub := subscribe.New(*repo)
-	// go sub.SubAndPub()
 	// time.Sleep(200 * time.Millisecond)
 }

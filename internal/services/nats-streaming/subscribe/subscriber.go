@@ -30,7 +30,7 @@ func (sb *Subscriber) SubAndPub() *stan.Subscription {
 	}
 	defer sc.Close()
 
-	sub, err := sc.Subscribe(sb.Channel, sb.repo.CreateOrder, stan.StartWithLastReceived())
+	sub, err := sc.Subscribe(sb.Channel, sb.repo.CreateOrder)
 	if err != nil {
 		logrus.Error(err)
 	}
