@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Поиск заказа</h1>
+    <p>Заказ {{.uid}} не был найден.</p>
+    <p>Попробуйте снова</p>
+    <form action="order" method="post">
+        <label for="orderUID">UID:</label>
+        <input type="text" id="orderUID" name="orderUID">
+        <input type="submit" value="Отрпавить">
+    </form>
+</body>
+</html>
