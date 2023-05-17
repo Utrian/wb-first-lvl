@@ -3,12 +3,12 @@ package queries
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"wb-first-lvl/internal/cache"
 	"wb-first-lvl/internal/models"
 	"wb-first-lvl/internal/services/parse"
 
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 
 	"github.com/nats-io/stan.go"
 )
@@ -28,7 +28,7 @@ func NewOrderRepo(db *sql.DB, cache *cache.Cache) *OrderRepo {
 func (repo *OrderRepo) InitCache() error {
 	ords, _ := repo.GetAllOrders()
 	if err := repo.cache.RestoreCache(&ords); err != nil {
-		fmt.Println("The cache was not initialized.")
+		logrus.Error("The cache was not initialized.")
 		return err
 	}
 	return nil
@@ -37,15 +37,15 @@ func (repo *OrderRepo) InitCache() error {
 func (repo *OrderRepo) TruncateTables() {
 	_, err := repo.db.Exec("TRUNCATE items, orders")
 	if err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 		return
 	}
-	fmt.Println("The orders have been cleared.")
+	logrus.Info("The orders have been cleared.")
 }
 
 func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) {
 	if ord, b := repo.cache.Get(order_uid); b {
-		fmt.Println("This order from cache")
+		logrus.Info("This order from cache")
 		return ord, nil
 	}
 
@@ -60,6 +60,7 @@ func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) 
 		`, order_uid,
 	)
 	if err != nil {
+		logrus.Error(err)
 		return models.Order{}, err
 	}
 	defer rowsI.Close()
@@ -74,12 +75,11 @@ func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) 
 			&itm.Brand, &itm.Status,
 		)
 		if err != nil {
+			logrus.Error(err)
 			return models.Order{}, err
 		}
 		itms = append(itms, itm)
 	}
-
-	// новый запрос в orders
 
 	var ord models.Order
 	err = repo.db.QueryRow(
@@ -93,12 +93,10 @@ func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) 
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Println(err)
+			logrus.Error(err)
 			return models.Order{}, err
 		}
 	}
-
-	//
 
 	ord.Items = itms
 
@@ -108,13 +106,14 @@ func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) 
 func (repo *OrderRepo) GetAllOrders() ([]models.Order, error) {
 	rowsO, err := repo.db.Query("SELECT * FROM orders")
 	if err != nil {
+		logrus.Error(err)
 		return []models.Order{}, err
 	}
 	defer rowsO.Close()
 
 	countOrds, err := repo.GetOrdersCount()
 	if err != nil {
-		fmt.Println("There are no orders.")
+		logrus.Info("There are no orders.")
 		return []models.Order{}, err
 	}
 
@@ -129,6 +128,7 @@ func (repo *OrderRepo) GetAllOrders() ([]models.Order, error) {
 			&ord.SmId, &ord.DateCreated, &ord.OofShard,
 		)
 		if err != nil {
+			logrus.Error(err)
 			return []models.Order{}, err
 		}
 
@@ -143,6 +143,7 @@ func (repo *OrderRepo) GetAllOrders() ([]models.Order, error) {
 			`, ord.OrderUID,
 		)
 		if err != nil {
+			logrus.Error(err)
 			return []models.Order{}, err
 		}
 		defer rowsI.Close()
@@ -157,6 +158,7 @@ func (repo *OrderRepo) GetAllOrders() ([]models.Order, error) {
 				&itm.Brand, &itm.Status,
 			)
 			if err != nil {
+				logrus.Error(err)
 				return []models.Order{}, err
 			}
 			itms = append(itms, itm)
@@ -171,7 +173,7 @@ func (repo *OrderRepo) GetOrdersCount() (int, error) {
 	var count int
 	if err := repo.db.QueryRow("SELECT COUNT(*) FROM orders").Scan(&count); err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Println(err)
+			logrus.Error(err)
 			return 0, err
 		}
 	}
@@ -206,7 +208,7 @@ func (repo *OrderRepo) CreateOrder(msg *stan.Msg) {
 		ord.DateCreated, ord.OofShard,
 	)
 	if err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 		return
 	}
 
@@ -227,9 +229,9 @@ func (repo *OrderRepo) CreateOrder(msg *stan.Msg) {
 			item.TotalPrice, item.NmId, item.Brand, item.Status,
 		)
 		if err != nil {
-			fmt.Println(err)
+			logrus.Error(err)
 			return
 		}
 	}
-	fmt.Println("Заказ размещен")
+	logrus.Info("Заказ размещен")
 }

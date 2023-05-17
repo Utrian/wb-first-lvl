@@ -1,10 +1,10 @@
 package subscribe
 
 import (
-	"fmt"
 	"wb-first-lvl/internal/database/queries"
 
 	"github.com/nats-io/stan.go"
+	"github.com/sirupsen/logrus"
 )
 
 type Subscriber struct {
@@ -26,13 +26,13 @@ func New(repo queries.OrderRepo) *Subscriber {
 func (sb *Subscriber) SubAndPub() *stan.Subscription {
 	sc, err := stan.Connect(sb.ClusterID, sb.ClientID)
 	if err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 	}
 	defer sc.Close()
 
 	sub, err := sc.Subscribe(sb.Channel, sb.repo.CreateOrder, stan.StartWithLastReceived())
 	if err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 	}
 
 	defer sub.Unsubscribe()
