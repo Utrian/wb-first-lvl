@@ -39,7 +39,7 @@ func Run() {
 
 	cache := cache.NewCache(5*time.Minute, 10*time.Minute)
 	repo := queries.NewOrderRepo(db, cache)
-	repo.TruncateTables()
+
 	repo.InitCache()
 
 	sub := subscribe.New(*repo)
