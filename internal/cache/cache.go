@@ -75,12 +75,10 @@ func (c *Cache) Get(ord_uid string) (models.Order, bool) {
 	return ord.Value, true
 }
 
-func (c *Cache) RestoreCache(ords *[]models.Order) error {
+func (c *Cache) RestoreCache(ords *[]models.Order) {
 	for _, ord := range *ords {
 		c.Set(ord.OrderUID, ord, 0)
 	}
-
-	return nil
 }
 
 func (c *Cache) StartGC() {

@@ -2,7 +2,6 @@ package app
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"time"
 	"wb-first-lvl/internal/cache"
@@ -10,7 +9,8 @@ import (
 	"wb-first-lvl/internal/services/nats-streaming/subscribe"
 	"wb-first-lvl/internal/transport/router"
 	"wb-first-lvl/tools"
-	// rec "wb-first-lvl/internal/services/nats-streaming/receive"
+
+	"github.com/sirupsen/logrus"
 )
 
 func InitConn() (*sql.DB, error) {
@@ -29,10 +29,9 @@ func InitConn() (*sql.DB, error) {
 }
 
 func Run() {
-	// Подключаемся к БД и создаем соединение repo
 	db, err := InitConn()
 	if err != nil {
-		fmt.Println("The database is not available.")
+		logrus.Error("The database is not available.")
 		return
 	}
 	defer db.Close()
@@ -46,6 +45,4 @@ func Run() {
 	go sub.SubAndPub()
 
 	router.Router(repo)
-
-	// time.Sleep(200 * time.Millisecond)
 }

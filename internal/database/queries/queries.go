@@ -26,11 +26,14 @@ func NewOrderRepo(db *sql.DB, cache *cache.Cache) *OrderRepo {
 }
 
 func (repo *OrderRepo) InitCache() error {
-	ords, _ := repo.GetAllOrders()
-	if err := repo.cache.RestoreCache(&ords); err != nil {
+	ords, err := repo.GetAllOrders()
+	if err != nil {
 		logrus.Error("The cache was not initialized.")
 		return err
 	}
+
+	repo.cache.RestoreCache(&ords)
+
 	return nil
 }
 
