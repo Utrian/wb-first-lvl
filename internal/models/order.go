@@ -37,6 +37,8 @@ func (o *Order) Validator() bool {
 		return false
 	}
 
+	// other checks
+
 	return true
 }
 
