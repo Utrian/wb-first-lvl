@@ -3,6 +3,7 @@ package queries
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 	"wb-first-lvl/internal/cache"
@@ -74,7 +75,8 @@ func (repo *OrderRepo) TruncateTables() {
 
 func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) {
 	if ord, b := repo.cache.Get(order_uid); b {
-		logrus.Info("This order from cache")
+		infoMsg := fmt.Sprintf("Order %s from cache.", order_uid)
+		logrus.Info(infoMsg)
 		return ord, nil
 	}
 
@@ -122,12 +124,16 @@ func (repo *OrderRepo) GetExistingOrder(order_uid string) (models.Order, error) 
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logrus.Error(err)
+			errMsg := fmt.Sprintf("The order number %s does not exist.", order_uid)
+			logrus.Info(errMsg)
 			return models.Order{}, err
 		}
 	}
 
 	ord.Items = itms
+
+	infoMsg := fmt.Sprintf("Order %s from database.", order_uid)
+	logrus.Info(infoMsg)
 
 	return ord, nil
 }

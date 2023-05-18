@@ -22,7 +22,6 @@ func Router(repo *queries.OrderRepo) {
 
 		ord, err := repo.GetExistingOrder(orderUID)
 		if err != nil {
-			logrus.Error("Такого заказа нет.")
 			return c.Render(tampPath+"/orderNotFound.html", fiber.Map{
 				"uid": orderUID,
 			})
