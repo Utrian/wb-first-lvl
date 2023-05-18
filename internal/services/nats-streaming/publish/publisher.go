@@ -44,14 +44,14 @@ func (p *publisher) initConnection() error {
 
 func (p *publisher) cmdPublishJson() {
 	for {
-		fmt.Printf("Enter the full path to the json file: ")
+		fmt.Printf("Enter the relative or full path to the json file: ")
 
 		var path string
 		fmt.Scanln(&path)
 
 		file, err := os.ReadFile(path)
 		if err != nil {
-			logrus.Info("Incorrect file format or incorrect path. Try again.")
+			logrus.Info("Incorrect data. Check the path or file. And try again.")
 			continue
 		}
 
