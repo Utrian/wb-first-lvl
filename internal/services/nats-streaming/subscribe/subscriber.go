@@ -11,10 +11,12 @@ type Subscriber struct {
 	ClusterID string
 	ClientID  string
 	Channel   string
-	repo      queries.OrderRepo
+	repo      *queries.OrderRepo
+	stanConn  stan.Conn
+	sub       stan.Subscription
 }
 
-func New(repo queries.OrderRepo) *Subscriber {
+func New(repo *queries.OrderRepo) *Subscriber {
 	return &Subscriber{
 		ClusterID: "test-cluster",
 		ClientID:  "order-subscriber",
@@ -23,20 +25,42 @@ func New(repo queries.OrderRepo) *Subscriber {
 	}
 }
 
-func (sb *Subscriber) SubAndPub() *stan.Subscription {
+func (sb *Subscriber) SubAndPub() error {
+	if err := sb.InitConn(); err != nil {
+		return err
+	}
+
+	if err := sb.InitSub(); err != nil {
+		return err
+	}
+
+	select {}
+}
+
+func (sb *Subscriber) InitConn() error {
 	sc, err := stan.Connect(sb.ClusterID, sb.ClientID)
 	if err != nil {
 		logrus.Error(err)
+		return err
 	}
-	defer sc.Close()
+	sb.stanConn = sc
 
-	sub, err := sc.Subscribe(sb.Channel, sb.repo.CreateOrder)
+	return nil
+}
+
+func (sb *Subscriber) InitSub() error {
+	sub, err := sb.stanConn.Subscribe(sb.Channel, sb.repo.CreateOrder)
 	if err != nil {
 		logrus.Error(err)
+		return err
 	}
+	sb.sub = sub
 
-	defer sub.Unsubscribe()
+	return nil
+}
 
-	select {} // позволяет функции дальше слушать канал и сразу обрабатывать по поступлению json;
-	// надо найти как правильно завершать процесс в таком случае;
+func (sb *Subscriber) Close() {
+	logrus.Info("Nats-streaming has unsubscribed and closed.")
+	sb.sub.Unsubscribe()
+	sb.stanConn.Close()
 }

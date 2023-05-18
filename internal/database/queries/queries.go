@@ -3,9 +3,12 @@ package queries
 import (
 	"database/sql"
 	"encoding/json"
+	"os"
+	"time"
 	"wb-first-lvl/internal/cache"
 	"wb-first-lvl/internal/models"
 	"wb-first-lvl/internal/services/parse"
+	"wb-first-lvl/tools"
 
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -18,11 +21,34 @@ type OrderRepo struct {
 	cache *cache.Cache
 }
 
-func NewOrderRepo(db *sql.DB, cache *cache.Cache) *OrderRepo {
+func NewOrderRepo() *OrderRepo {
+	db, err := InitConn()
+	if err != nil {
+		logrus.Error("The database is not available.")
+		return &OrderRepo{}
+	}
+
+	cache := cache.NewCache(5*time.Minute, 10*time.Minute)
+
 	return &OrderRepo{
 		db:    db,
 		cache: cache,
 	}
+}
+
+func InitConn() (*sql.DB, error) {
+	tools.Load_env()
+	driverName := os.Getenv("DRIVER_NAME")
+	dataSourceName := os.Getenv("DATA_SOURCE_NAME")
+
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 func (repo *OrderRepo) InitCache() error {
@@ -244,4 +270,9 @@ func (repo *OrderRepo) CreateOrder(msg *stan.Msg) {
 		}
 	}
 	logrus.Info("Заказ размещен")
+}
+
+func (repo *OrderRepo) Close() {
+	logrus.Info("DB has closed.")
+	repo.db.Close()
 }
