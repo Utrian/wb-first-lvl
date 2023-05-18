@@ -3,36 +3,51 @@ package main
 import (
 	"fmt"
 	"os"
+	"wb-first-lvl/internal/services/nats-streaming/subscribe"
 
 	"github.com/nats-io/stan.go"
 	"github.com/sirupsen/logrus"
+	"github.com/xlab/closer"
 )
 
 const (
-	clusterID = "test-cluster"
+	clusterID = subscribe.ClusterID
+	channel   = subscribe.Channel
 	clientID  = "order-publisher"
-	channel   = "order-notification"
 )
 
-func InitConnection() stan.Conn {
-	sc, err := stan.Connect(clusterID, clientID)
-	if err != nil {
-		logrus.Error(err)
-	}
-	return sc
+type publisher struct {
+	clusterID string
+	clientID  string
+	channel   string
+	stanConn  stan.Conn
 }
 
-func cmdPublishJson(sc stan.Conn) {
+func newPub() *publisher {
+	return &publisher{
+		clusterID: clusterID,
+		clientID:  clientID,
+		channel:   channel,
+	}
+}
+
+func (p *publisher) initConnection() error {
+	sc, err := stan.Connect(p.clusterID, p.clientID)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+	p.stanConn = sc
+
+	return nil
+}
+
+func (p *publisher) cmdPublishJson() {
 	for {
-		fmt.Print("Enter the full path to the json file: ")
+		fmt.Printf("Enter the full path to the json file: ")
 
 		var path string
 		fmt.Scanln(&path)
-
-		if path == "exit" {
-			logrus.Info("The channel was shut down.")
-			return
-		}
 
 		file, err := os.ReadFile(path)
 		if err != nil {
@@ -40,7 +55,7 @@ func cmdPublishJson(sc stan.Conn) {
 			continue
 		}
 
-		err = sc.Publish(channel, file)
+		err = p.stanConn.Publish(channel, file)
 		if err != nil {
 			logrus.Info("Failed to send the file. Try again.")
 			continue
@@ -49,7 +64,18 @@ func cmdPublishJson(sc stan.Conn) {
 	}
 }
 
+func (p *publisher) Close() {
+	logrus.Info("Publisher has closed.")
+	p.stanConn.Close()
+}
+
 func main() {
-	ic := InitConnection()
-	cmdPublishJson(ic)
+	defer closer.Close()
+
+	pub := newPub()
+
+	pub.initConnection()
+	closer.Bind(pub.Close)
+
+	pub.cmdPublishJson()
 }

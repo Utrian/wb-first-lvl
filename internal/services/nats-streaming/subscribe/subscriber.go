@@ -7,10 +7,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	ClusterID = "test-cluster"
+	Channel   = "order-notification"
+	clientID  = "order-subscriber"
+)
+
 type Subscriber struct {
-	ClusterID string
-	ClientID  string
-	Channel   string
+	clusterID string
+	clientID  string
+	channel   string
 	repo      *queries.OrderRepo
 	stanConn  stan.Conn
 	sub       stan.Subscription
@@ -18,9 +24,9 @@ type Subscriber struct {
 
 func New(repo *queries.OrderRepo) *Subscriber {
 	return &Subscriber{
-		ClusterID: "test-cluster",
-		ClientID:  "order-subscriber",
-		Channel:   "order-notification",
+		clusterID: ClusterID,
+		clientID:  clientID,
+		channel:   Channel,
 		repo:      repo,
 	}
 }
@@ -38,7 +44,7 @@ func (sb *Subscriber) SubAndPub() error {
 }
 
 func (sb *Subscriber) InitConn() error {
-	sc, err := stan.Connect(sb.ClusterID, sb.ClientID)
+	sc, err := stan.Connect(sb.clusterID, sb.clientID)
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -49,7 +55,7 @@ func (sb *Subscriber) InitConn() error {
 }
 
 func (sb *Subscriber) InitSub() error {
-	sub, err := sb.stanConn.Subscribe(sb.Channel, sb.repo.CreateOrder)
+	sub, err := sb.stanConn.Subscribe(sb.channel, sb.repo.CreateOrder)
 	if err != nil {
 		logrus.Error(err)
 		return err
