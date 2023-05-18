@@ -181,14 +181,21 @@ func (repo *OrderRepo) GetOrdersCount() (int, error) {
 }
 
 func (repo *OrderRepo) CreateOrder(msg *stan.Msg) {
-	ord := parse.ParseJsonToOrder(msg)
+	ord, err := parse.ParseJsonToOrder(msg)
+	if err != nil {
+		return
+	}
+
+	if v := ord.Validator(); !v {
+		return
+	}
 
 	repo.cache.Set(ord.OrderUID, ord, 0)
 
 	jsonDelivery, _ := json.Marshal(ord.Delivery)
 	jsonPayment, _ := json.Marshal(ord.Payment)
 
-	_, err := repo.db.Exec(
+	_, err = repo.db.Exec(
 		`
 		INSERT INTO orders (
 			order_uid, track_number, "entry",

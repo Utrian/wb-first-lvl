@@ -4,5 +4,11 @@ nats:
 publish:
 	go run internal/services/nats-streaming/publish/publisher.go
 
-start:
+run:
 	go run cmd/app/main.go
+
+build:
+	go build cmd/app/main.go
+
+main:
+	./main

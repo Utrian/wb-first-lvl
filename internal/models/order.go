@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Order struct {
@@ -22,6 +24,20 @@ type Order struct {
 	SmId              int       `json:"sm_id"`
 	DateCreated       time.Time `json:"date_created"`
 	OofShard          string    `json:"oof_shard"`
+}
+
+func (o *Order) Validator() bool {
+	if len(o.OrderUID) > 19 {
+		logrus.Error("OrderUID is too long (19 chars maximum).")
+		return false
+	}
+
+	if len(o.TrackNumber) > 14 {
+		logrus.Error("TrackNumber is too long (14 chars maximum).")
+		return false
+	}
+
+	return true
 }
 
 func (o Order) Value() (driver.Value, error) {
